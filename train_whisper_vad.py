@@ -11,6 +11,13 @@ from torch.utils.data import Dataset, DataLoader
 import whisper
 from whisper.audio import load_audio, log_mel_spectrogram, pad_or_trim, N_FRAMES
 
+# === 新增：进度条（仅此改动） ===
+try:
+    from tqdm.auto import tqdm
+except Exception:
+    tqdm = None
+# ============================
+
 # ===================== 新增数据配置（只改数据部分） =====================
 AUDIO_DIR = Path("merged_audio")   # 你截图里的音频目录
 LABEL_TSV = "autotagging_moodtheme_filtered_with_vad_clean.tsv"  # 刚刚处理后的 TSV（含 V/A/D）
@@ -160,7 +167,10 @@ def collate_fn(batch):
 def train_one_epoch(model, loader, optim, loss_fn):
     model.train()
     total_loss = 0.0
-    for mel, y, _, _ in loader:
+    # === 新增：tqdm 进度条（仅此改动） ===
+    iterator = tqdm(loader, total=len(loader), desc="Train", leave=False) if tqdm else loader
+    # ====================================
+    for mel, y, _, _ in iterator:
         mel = mel.to(DEVICE)
         y = y.to(DEVICE)
         pred = model(mel)
@@ -169,6 +179,11 @@ def train_one_epoch(model, loader, optim, loss_fn):
         loss.backward()
         optim.step()
         total_loss += loss.item() * mel.size(0)
+
+        # === 新增：在进度条上显示当前 batch 的 loss（仅此改动） ===
+        if tqdm:
+            iterator.set_postfix({"loss": f"{loss.item():.4f}"})
+        # ==========================================================
     return total_loss / len(loader.dataset)
 
 
@@ -176,12 +191,20 @@ def train_one_epoch(model, loader, optim, loss_fn):
 def eval_epoch(model, loader, loss_fn):
     model.eval()
     total_loss = 0.0
-    for mel, y, _, _ in loader:
+    # === 新增：tqdm 进度条（仅此改动） ===
+    iterator = tqdm(loader, total=len(loader), desc="Valid", leave=False) if tqdm else loader
+    # ====================================
+    for mel, y, _, _ in iterator:
         mel = mel.to(DEVICE)
         y = y.to(DEVICE)
         pred = model(mel)
         loss = loss_fn(pred, y)
         total_loss += loss.item() * mel.size(0)
+
+        # === 新增：在进度条上显示当前 batch 的 loss（仅此改动） ===
+        if tqdm:
+            iterator.set_postfix({"loss": f"{loss.item():.4f}"})
+        # ==========================================================
     return total_loss / len(loader.dataset)
 
 
