@@ -1,0 +1,32 @@
+project: "image_vad"
+entity: ""         # optional: your wandb team
+run_name: "image_vad-vad"
+wandb_mode: "online"   # "online" | "offline" | "disabled"
+
+data:
+  tsv_path: "../dataset/WikiArt-Emotions-Ag3.tsv"
+  img_root: "../dataset/images"
+  vad_lexicon_path: "../dataset/VAD_Lookup.txt"
+  vad_dim: 3
+  val_ratio: 0.1
+  test_ratio: 0.1
+  img_size: 224
+
+train:
+  epochs: 200
+  batch_size: 64
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  ccc_weight: 0.2      # try 0.2~0.5 for more stability
+  amp: true  
+  seed: 42
+
+model:
+  backbone: "resnet18"   # resnet18|34|50|101
+  emb_dim: 128
+  pretrained: true
+
+logging:
+  log_every_n_steps: 25
+  save_dir: "outputs"
+  save_best_metric: "val/mse"   # lower is better
