@@ -27,6 +27,7 @@ WHISPER_MODEL_NAME = "base"
 SAMPLE_RATE = 16000
 BATCH_SIZE = 8
 LR = 1e-3
+WEIGHT_DECAY = 1e-4
 EPOCHS = 10
 SEED = 42
 TRAIN_PER_CLASS = 3               
@@ -96,7 +97,7 @@ class WhisperVADDataset(Dataset):
         path, vad = self.items[idx]
         audio = load_audio(str(path))                 # float32, 32kHz
         audio = pad_or_trim(audio)                   
-        mel = log_mel_spectrogram(audio)           
+        mel = log_mel_spectrogram(audio)
         target = torch.tensor(vad, dtype=torch.float32)  
         return mel, target, str(path), ""
 
@@ -194,7 +195,7 @@ def main():
             "audio_dir": str(AUDIO_DIR),
             "label_tsv": LABEL_TSV,
         },
-        name=f"{WHISPER_MODEL_NAME}_head_lr{LR}_bs{BATCH_SIZE}",
+        name=f"{WHISPER_MODEL_NAME}_head_lr{LR}_bs{BATCH_SIZE}_weightdecay",
     )
     config = wandb.config
 
@@ -225,10 +226,10 @@ def main():
     wm = whisper.load_model(WHISPER_MODEL_NAME, device=DEVICE)
     model = WhisperEncoderHead(wm, hidden=128).to(DEVICE)
 
-    optimizer = torch.optim.Adam(model.head.parameters(), lr=LR)  # ohly train the head
+    optimizer = torch.optim.Adam(model.head.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)  # ohly train the head
     loss_fn = nn.MSELoss() 
     best_val = float("inf")
-    best_path = "vad_head_best.pt"
+    best_path = "vad_head_best_weightdecay.pt"
 
     for epoch in range(1, EPOCHS + 1):
         tr_loss = train_one_epoch(model, train_loader, optimizer, loss_fn)
@@ -252,4 +253,9 @@ def main():
 
 
 if __name__ == "__main__":
+    print("Using device:", DEVICE)
+    if DEVICE == "cuda":
+        print("GPU:", torch.cuda.get_device_name(0))
+    else:
+        print("No GPU detected.")
     main()
