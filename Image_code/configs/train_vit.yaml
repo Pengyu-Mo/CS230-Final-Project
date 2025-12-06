@@ -1,0 +1,37 @@
+project: "image_vad"
+entity: ""         # optional: your wandb team
+run_name: "vit-vad"
+wandb_mode: "online"   # "online" | "offline" | "disabled"
+
+data:
+  tsv_path: "../dataset/WikiArt-Emotions-Ag3.tsv"
+  img_root: "../dataset/images"
+  vad_lexicon_path: "../dataset/VAD_Lookup.txt"
+  vad_dim: 3
+  val_ratio: 0.1
+  test_ratio: 0.1
+  img_size: 224
+
+train:
+  epochs: 30            # Reduced
+  batch_size: 32
+  lr: 1.0e-4
+  weight_decay: 1.0e-4
+  ccc_weight: 0.2
+  amp: true  
+  seed: 42
+  dropout: 0.3          # Dropout in heads
+
+model:
+  type: "vit"                     # "resnet" | "clip" | "vit"
+  backbone: "vit_b_16"            # ViT models: vit_b_16, vit_b_32, vit_l_16, vit_l_32
+  emb_dim: 128
+  pretrained: true
+  freeze_encoder: true            # Freeze ViT encoder, only train heads
+  unfreeze_last_n_blocks: 2       # Optionally unfreeze last N transformer blocks (0 = heads only)
+
+logging:
+  log_every_n_steps: 25
+  save_dir: "outputs_vit"
+  save_best_metric: "val/mse"
+
